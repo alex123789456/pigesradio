@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Piges Radio - Interface en ligne</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body {
+            background: #222;
+            color: #fff;
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0; padding: 20px;
+            max-width: 900px;
+            margin-left: auto; margin-right: auto;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        .day-list {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        button.day-btn {
+            background: #333;
+            border: none;
+            padding: 10px 20px;
+            margin: 6px 4px;
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        button.day-btn:hover {
+            background: #35e68a;
+            color: #222;
+        }
+        .player-block {
+            background: #181818;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+        }
+        .hour-label {
+            font-weight: 700;
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+        audio {
+            width: 100%;
+            margin-bottom: 10px;
+            outline: none;
+        }
+        a.dl-btn {
+            background: #35e68a;
+            color: #222;
+            font-weight: bold;
+            padding: 7px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        a.dl-btn:hover {
+            background: #0b946f;
+        }
+        .empty {
+            text-align: center;
+            margin-top: 40px;
+            color: #ccc;
+            font-size: 1.1rem;
+        }
+        #back-btn {
+            cursor: pointer;
+            color: #35e68a;
+            font-weight: bold;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Piges Radio</h1>
+    <div id="nav"></div>
+    <div id="content"></div>
+
+    <script>
+    const jsonUrl = "https://15.ein.itsby.design/badabiiing/filebrowser/api/public/dl/7hmgeM1-?inline=true";
+
+    let pigesData = {};
+    let currentDay = null;
+
+    function createButton(label, onClick) {
+        const btn = document.createElement("button");
+        btn.textContent = label;
+        btn.className = "day-btn";
+        btn.addEventListener("click", onClick);
+        return btn;
+    }
+
+    function showDaysList() {
+        const nav = document.getElementById("nav");
+        nav.innerHTML = "";
+        const content = document.getElementById("content");
+        content.innerHTML = "";
+
+        if (!pigesData || Object.keys(pigesData).length === 0) {
+            content.innerHTML = '<div class="empty">Aucune pige disponible.</div>';
+            return;
+        }
+
+        Object.keys(pigesData).sort((a,b) => b.localeCompare(a)).forEach(day => {
+            nav.appendChild(createButton(day, () => showDay(day)));
+        });
+    }
+
+    function showDay(day) {
+        currentDay = day;
+        const nav = document.getElementById("nav");
+        nav.innerHTML = '<div id="back-btn" onclick="showDaysList()">← Retour aux jours</div>';
+
+        const content = document.getElementById("content");
+        content.innerHTML = `<h2>${day}</h2>`;
+
+        const files = pigesData[day];
+        if (!files || files.length === 0) {
+            content.innerHTML += '<div class="empty">Aucune pige pour ce jour.</div>';
+            return;
+        }
+
+        files.forEach(url => {
+            // Extrait heure du nom fichier, ex pige_08h00.mp3
+            const m = url.match(/pige_(\d{2}h\d{2})\.mp3/i);
+            const hour = m ? m[1] : "Pige";
+
+            const block = document.createElement("div");
+            block.className = "player-block";
+
+            const hourLabel = document.createElement("div");
+            hourLabel.className = "hour-label";
+            hourLabel.textContent = hour;
+            block.appendChild(hourLabel);
+
+            const audio = document.createElement("audio");
+            audio.controls = true;
+            audio.preload = "none";
+
+            const source = document.createElement("source");
+            source.src = url;
+            source.type = "audio/mp3";
+
+            audio.appendChild(source);
+            block.appendChild(audio);
+
+            const dl = document.createElement("a");
+            dl.href = url;
+            dl.download = "";
+            dl.className = "dl-btn";
+            dl.textContent = "Télécharger";
+
+            block.appendChild(dl);
+            content.appendChild(block);
+        });
+    }
+
+    fetch(jsonUrl)
+    .then(response => response.json())
+    .then(data => {
+        pigesData = data;
+        showDaysList();
+    })
+    .catch(err => {
+        document.getElementById("content").innerHTML = '<div class="empty">Erreur lors du chargement des piges.</div>';
+        console.error(err);
+    });
+    </script>
+</body>
+</html>
